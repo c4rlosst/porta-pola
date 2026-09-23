@@ -112,8 +112,20 @@
     catch (e) { return []; }
   }
 
+  /** The phone's torch, where the browser exposes it (Android Chrome, rear camera). */
+  function videoTrack() { return stream && stream.getVideoTracks()[0]; }
+  function hasTorch() {
+    const t = videoTrack();
+    try { return !!(t && t.getCapabilities && t.getCapabilities().torch); } catch (e) { return false; }
+  }
+  async function setTorch(on) {
+    const t = videoTrack();
+    if (!t || !hasTorch()) return false;
+    try { await t.applyConstraints({ advanced: [{ torch: !!on }] }); return true; } catch (e) { return false; }
+  }
+
   PP.camera = {
-    video, start, stop, videoInputs, CameraError,
+    video, start, stop, videoInputs, hasTorch, setTorch, CameraError,
     get active() { return !!stream; },
     get fake() { return useFake; },
   };

@@ -7,6 +7,9 @@ const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
 const FAMILIES = [
   { family: 'Jost',            query: 'Jost:wght@300..700',                file: 'jost' },
   { family: 'Caveat',            query: 'Caveat:wght@400..700',              file: 'caveat' },
+  { family: 'Permanent Marker',  query: 'Permanent+Marker',                  file: 'permanent-marker' },
+  { family: 'Special Elite',     query: 'Special+Elite',                     file: 'special-elite' },
+  { family: 'Reenie Beanie',     query: 'Reenie+Beanie',                     file: 'reenie-beanie' },
 ];
 
 await mkdir('fonts', { recursive: true });

@@ -11,19 +11,19 @@
   // lift = faded blacks (number, or [r,g,b] for a tinted shadow); add = overall colour cast;
   // leak = { x, y, r, c, a }: light leaking in from (x, y) as a fraction of the frame, radius r, colour c
   const FILTERS = [
-    { id: 'orig',    name: 'Original' },
-    { id: 'instant', name: 'Instant', sat: 1.1,  contrast: 1.08, bright: 1.03, lift: [17, 14, 10], add: [7, 2, -9],    vignette: 0.42, grain: 0.05 },
-    { id: 'ccd',     name: 'CCD',     sat: 1.32, contrast: 1.16, bright: 1.08, lift: [4, 6, 12],   add: [-6, 3, 11],   vignette: 0.22, grain: 0.035 },
-    { id: 'flash',   name: 'Flash',   sat: 1.18, contrast: 1.3,  bright: 1.1,  lift: [8, 4, 2],    add: [10, 3, -8],   vignette: 0.55, grain: 0.09,
+    { id: 'orig',    name: 'original' },
+    { id: 'instant', name: 'instant', sat: 1.1,  contrast: 1.08, bright: 1.03, lift: [17, 14, 10], add: [7, 2, -9],    vignette: 0.42, grain: 0.05 },
+    { id: 'ccd',     name: 'ccd',     sat: 1.32, contrast: 1.16, bright: 1.08, lift: [4, 6, 12],   add: [-6, 3, 11],   vignette: 0.22, grain: 0.035 },
+    { id: 'flash',   name: 'flash',   sat: 1.18, contrast: 1.3,  bright: 1.1,  lift: [8, 4, 2],    add: [10, 3, -8],   vignette: 0.55, grain: 0.09,
       leak: { x: 1.02, y: 0.28, r: 0.75, c: [255, 105, 40], a: 0.8 } },
-    { id: 'gold',    name: 'Gold',    sat: 1.15, contrast: 1.06, bright: 1.05, lift: [14, 10, 0],  add: [20, 9, -20],  vignette: 0.3,  grain: 0.06,
+    { id: 'gold',    name: 'gold',    sat: 1.15, contrast: 1.06, bright: 1.05, lift: [14, 10, 0],  add: [20, 9, -20],  vignette: 0.3,  grain: 0.06,
       leak: { x: -0.02, y: 0.78, r: 0.62, c: [255, 175, 60], a: 0.5 } },
-    { id: 'verde',   name: 'Verde',   sat: 1.06, contrast: 1.12, bright: 1.02, lift: [6, 17, 14],  add: [-8, 6, 3],    vignette: 0.28, grain: 0.05 },
-    { id: 'dream',   name: 'Dream',   sat: 0.9,  contrast: 0.86, bright: 1.1,  lift: [30, 22, 32], add: [10, 0, 12],   vignette: 0.12, grain: 0.03,
+    { id: 'verde',   name: 'verde',   sat: 1.06, contrast: 1.12, bright: 1.02, lift: [6, 17, 14],  add: [-8, 6, 3],    vignette: 0.28, grain: 0.05 },
+    { id: 'dream',   name: 'dream',   sat: 0.9,  contrast: 0.86, bright: 1.1,  lift: [30, 22, 32], add: [10, 0, 12],   vignette: 0.12, grain: 0.03,
       leak: { x: 0.1, y: -0.02, r: 0.75, c: [255, 140, 190], a: 0.6 } },
-    { id: 'mono',    name: 'Mono',    sat: 0,    contrast: 1.25, bright: 1.02, lift: 8,            add: [0, 0, 0],     vignette: 0.42, grain: 0.11 },
-    { id: 'sepia',   name: 'Sepia',   sepia: 0.85, sat: 0.9,   contrast: 1.06, lift: 14,          add: [0, 0, 0],     vignette: 0.38, grain: 0.06 },
-    { id: 'cool',    name: 'Cool',    sat: 0.95, contrast: 1.06, bright: 1.02, lift: 12,           add: [-12, 0, 16],  vignette: 0.3,  grain: 0.04 },
+    { id: 'mono',    name: 'mono',    sat: 0,    contrast: 1.25, bright: 1.02, lift: 8,            add: [0, 0, 0],     vignette: 0.42, grain: 0.11 },
+    { id: 'sepia',   name: 'sepia',   sepia: 0.85, sat: 0.9,   contrast: 1.06, lift: 14,          add: [0, 0, 0],     vignette: 0.38, grain: 0.06 },
+    { id: 'cool',    name: 'cool',    sat: 0.95, contrast: 1.06, bright: 1.02, lift: 12,           add: [-12, 0, 16],  vignette: 0.3,  grain: 0.04 },
   ];
 
   const LR = 0.2126, LG = 0.7152, LB = 0.0722;

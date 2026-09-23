@@ -1,6 +1,7 @@
 /* Porta-Pola: the frame is the viewfinder.
- * The live camera shows inside the frame's next empty photo window, filtered; the shutter (or a
- * timer) drops the shot in and moves on to the next window. Save exports the finished frame.
+ * The live camera shows inside the frame's next empty photo window, filtered; the shutter (a timer,
+ * a volume key or an earphone button) drops the shot in and moves on to the next window.
+ * Save exports the finished frame.
  */
 (function () {
   'use strict';
@@ -12,10 +13,12 @@
   const app = $('#app');
   const el = {
     modes: $('#modes'), layouts: $('#layouts'), stage: $('#stage'), canvas: $('#frameCv'), status: $('#status'), count: $('#count'),
-    hint: $('#hint'), filters: $('#filters'), caption: $('#caption'), swatches: $('#swatches'), swStamp: $('#swStamp'), swMirror: $('#swMirror'),
-    btnTimer: $('#btnTimer'), btnFlip: $('#btnFlip'), ctlFlip: $('#ctlFlip'), btnShutter: $('#btnShutter'), shutterLabel: $('#shutterLabel'),
+    hint: $('#hint'), filters: $('#filters'), caption: $('#caption'), fonts: $('#fonts'), swatches: $('#swatches'),
+    swLogo: $('#swLogo'), swStamp: $('#swStamp'), swMirror: $('#swMirror'), swKeys: $('#swKeys'),
+    btnTimer: $('#btnTimer'), btnFlash: $('#btnFlash'), btnFlip: $('#btnFlip'), ctlFlip: $('#ctlFlip'),
+    btnShutter: $('#btnShutter'), shutterLabel: $('#shutterLabel'),
     btnReset: $('#btnReset'), ctlReset: $('#ctlReset'), btnSave: $('#btnSave'), ctlSave: $('#ctlSave'),
-    flash: $('#flash'), toast: $('#toast'), live: $('#live'),
+    glow: $('#glow'), flash: $('#flash'), toast: $('#toast'), live: $('#live'),
   };
 
   const ICONS = {
@@ -23,9 +26,12 @@
     redo: '<path d="M4 12a8 8 0 1 0 2.6-5.9"/><path d="M4 4v4.5h4.5"/>',
     timer: '<circle cx="12" cy="13.5" r="7"/><path d="M12 9.5v4l2.5 1.5"/><path d="M9.5 3h5"/>',
     save: '<path d="M12 4v11"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/>',
+    bolt: '<path d="M13 3 6 13.5h5L10 21l7-10.5h-5z"/>',
+    boltOff: '<path d="M13 3 6 13.5h5L10 21l7-10.5h-5z"/><path d="M4 4l16 16"/>',
   };
   const icon = (name) => '<svg class="i" viewBox="0 0 24 24" aria-hidden="true">' + ICONS[name] + '</svg>';
   const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
   const TIMERS = [0, 3, 5, 10];
   const EXPORT_SCALE = { polaroid: 1.5, strip4: 2, strip3: 2, grid4: 1.5 };
@@ -34,19 +40,26 @@
 
   function loadPrefs() { try { return JSON.parse(localStorage.getItem('pp.prefs')) || {}; } catch (e) { return {}; } }
   function savePrefs() {
-    try { localStorage.setItem('pp.prefs', JSON.stringify({ filter: state.filter, timer: state.timer, stamp: state.stamp })); } catch (e) { /* storage blocked */ }
+    try {
+      localStorage.setItem('pp.prefs', JSON.stringify({
+        filter: state.filter, timer: state.timer, stamp: state.stamp, logo: state.logo, font: state.font, flash: state.flash, keys: state.keys,
+      }));
+    } catch (e) { /* storage blocked */ }
   }
   const prefs = loadPrefs();
 
   const state = {
     mode: 'polaroid', layout: 'strip4', frame: 'white', caption: '', mirror: true,
-    filter: F.get(prefs.filter).id, timer: TIMERS.includes(prefs.timer) ? prefs.timer : 0, stamp: !!prefs.stamp, date: new Date(),
+    font: R.captionFont(prefs.font).id,
+    filter: F.get(prefs.filter).id, timer: TIMERS.includes(prefs.timer) ? prefs.timer : 0,
+    stamp: !!prefs.stamp, logo: prefs.logo !== false, flash: !!prefs.flash, keys: !!prefs.keys, date: new Date(),
     facing: 'user', facingKnown: false, deviceId: null, lastFacing: null, canFlip: false,
     cam: 'idle',      // idle | starting | live | error
     camErr: null,
     shots: [],        // one entry per photo window; null until taken
     active: 0,        // window the camera is showing in, or null when the frame is full
     running: false,   // a timer countdown is in progress
+    snapping: false,  // the flash is lighting up and the photo is about to be taken
     cancel: false,
   };
   let shotId = 0;
@@ -59,7 +72,7 @@
     el.toast.textContent = msg;
     el.toast.classList.add('show');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => el.toast.classList.remove('show'), 2600);
+    toastTimer = setTimeout(() => el.toast.classList.remove('show'), 2800);
   }
   function announce(msg) { el.live.textContent = ''; setTimeout(() => { el.live.textContent = msg; }, 30); }
 
@@ -71,7 +84,7 @@
   function requestDraw() {
     needsDraw = true;
     clearTimeout(prewarmTimer);
-    if (state.active === null) prewarmTimer = setTimeout(() => exportBlob().catch(() => {}), 700); // so Save feels instant
+    if (state.active === null) prewarmTimer = setTimeout(() => exportBlob().catch(() => {}), 700); // so save feels instant
   }
 
   function cover(sw, sh, aspect) {
@@ -99,8 +112,8 @@
 
   function design(live) {
     return {
-      layout: layoutId(), shots: state.shots, frame: state.frame, caption: state.caption,
-      filter: state.filter, stamp: state.stamp, date: state.date, live: live || null,
+      layout: layoutId(), shots: state.shots, frame: state.frame, caption: state.caption, font: state.font,
+      filter: state.filter, stamp: state.stamp, logo: state.logo, date: state.date, live: live || null,
     };
   }
 
@@ -174,22 +187,42 @@
     savePrefs(); syncUI(); requestDraw();
   }
 
+  /* ───────────── caption fonts ───────────── */
+
+  function buildFonts() {
+    el.fonts.innerHTML = '';
+    R.CAPTION_FONTS.forEach(f => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.dataset.id = f.id; b.textContent = f.name;
+      b.style.fontFamily = f.css; b.style.fontWeight = f.weight; b.style.fontSize = f.ui + 'px';
+      b.setAttribute('aria-pressed', 'false');
+      b.addEventListener('click', () => setFont(f.id));
+      el.fonts.append(b);
+    });
+  }
+
+  function setFont(id) {
+    state.font = id;
+    savePrefs(); syncUI(); requestDraw();
+    R.loadFont(id).then(requestDraw); // custom fonts download the first time they are picked
+  }
+
   /* ───────────── camera ───────────── */
 
   const CAM_MSG = {
-    denied: ['Camera is blocked', 'Allow camera access for this site in your browser settings, then try again.'],
-    none: ['No camera found', 'Connect a camera, then try again.'],
-    busy: ['Camera is busy', 'Close other apps that use the camera, then try again.'],
-    insecure: ['Camera needs a secure page', 'Open Porta-Pola over https or on localhost to use the camera.'],
-    unsupported: ['Camera not supported', 'This browser cannot open a camera. Try Chrome, Safari or Firefox.'],
-    error: ['Camera could not start', 'Try again in a moment.'],
+    denied: ['camera is blocked', 'allow camera access for this site in your browser settings, then try again.'],
+    none: ['no camera found', 'connect a camera, then try again.'],
+    busy: ['camera is busy', 'close other apps that use the camera, then try again.'],
+    insecure: ['camera needs a secure page', 'open porta-pola over https or on localhost to use the camera.'],
+    unsupported: ['camera not supported', 'this browser cannot open a camera. try chrome, safari or firefox.'],
+    error: ['camera could not start', 'try again in a moment.'],
   };
 
   function syncStatus() {
     const s = el.status;
     if (state.cam === 'starting') {
       s.hidden = false;
-      s.innerHTML = '<h3>Starting camera</h3><p>Allow camera access if your browser asks.</p>';
+      s.innerHTML = '<h3>starting camera</h3><p>allow camera access if your browser asks.</p>';
     } else if (state.cam === 'error') {
       const code = state.camErr && state.camErr.code;
       const m = CAM_MSG[code] || CAM_MSG.error;
@@ -199,7 +232,7 @@
       s.querySelector('p').textContent = m[1];
       if (code !== 'insecure' && code !== 'unsupported') {
         const b = document.createElement('button');
-        b.type = 'button'; b.className = 'btn btn-primary'; b.textContent = 'Try again';
+        b.type = 'button'; b.className = 'btn btn-primary'; b.textContent = 'try again';
         b.addEventListener('click', () => startCamera());
         s.querySelector('.row').append(b);
       }
@@ -225,12 +258,31 @@
   }
 
   async function flipCamera() {
-    if (state.cam === 'starting' || state.running) return;
+    if (state.cam === 'starting' || state.running || state.snapping) return;
     if (state.facingKnown) return startCamera({ facing: state.facing === 'user' ? 'environment' : 'user' });
     const inputs = await cam.videoInputs();
     if (inputs.length < 2) return;
     const i = inputs.findIndex(d => d.deviceId === state.deviceId);
     startCamera({ deviceId: inputs[(i + 1) % inputs.length].deviceId });
+  }
+
+  /* ───────────── flash ───────────── */
+
+  // Selfie side: the screen itself lights up (a warm white). Rear camera: the phone's torch, where the browser allows it.
+  const isRear = () => state.facingKnown && state.facing === 'environment';
+  const flashSupported = () => (isRear() ? cam.hasTorch() : true);
+
+  /** Light the scene and return a function that turns the light off again (or null when there is no flash). */
+  async function lightUp() {
+    if (!state.flash) return null;
+    if (isRear()) {
+      if (!(await cam.setTorch(true))) return null;
+      await sleep(300); // give the camera a moment to expose for the light
+      return () => cam.setTorch(false);
+    }
+    el.glow.classList.add('on');
+    await sleep(reduced() ? 100 : 320);
+    return () => el.glow.classList.remove('on');
   }
 
   /* ───────────── taking photos ───────────── */
@@ -240,7 +292,7 @@
     state.active = 0;
   }
 
-  function flashScreen() {
+  function flashScreen() { // the quick white blink that says "click"
     if (reduced() || !el.flash.animate) return;
     el.flash.animate([{ opacity: 0 }, { opacity: 0.95, offset: 0.1 }, { opacity: 0 }], { duration: 450, easing: 'ease-out' });
   }
@@ -253,19 +305,28 @@
     window.scrollTo({ top: Math.max(0, y - window.innerHeight * 0.35), behavior: reduced() ? 'auto' : 'smooth' });
   }
 
-  /** Grab the current camera frame into the active window. */
-  function snapNow() {
-    if (state.cam !== 'live' || !cam.video.videoWidth) return false;
-    const shot = R.makeShot(cam.video, geo().aspect, { mirror: state.mirror, maxSide: 1400 });
-    shot.id = ++shotId;
-    state.shots[state.active] = shot;
-    state.date = new Date();
-    flashScreen();
-    try { if (navigator.vibrate) navigator.vibrate(30); } catch (e) { /* unsupported */ }
-    const next = state.shots.findIndex(s => !s);
-    state.active = next >= 0 ? next : null;
-    syncUI(); requestDraw();
-    return true;
+  /** Grab the current camera frame into the active window, lighting it with the flash first if that is on. */
+  async function snapNow() {
+    if (state.snapping || state.cam !== 'live' || !cam.video.videoWidth) return false;
+    state.snapping = true; syncUI();
+    let off = null;
+    try {
+      off = await lightUp();
+      if (state.cam !== 'live' || !cam.video.videoWidth) return false;
+      const shot = R.makeShot(cam.video, geo().aspect, { mirror: state.mirror, maxSide: 1400 });
+      shot.id = ++shotId;
+      state.shots[state.active] = shot;
+      state.date = new Date();
+      if (!off) flashScreen();
+      try { if (navigator.vibrate) navigator.vibrate(30); } catch (e) { /* unsupported */ }
+      const next = state.shots.findIndex(s => !s);
+      state.active = next >= 0 ? next : null;
+      return true;
+    } finally {
+      if (off) setTimeout(off, reduced() ? 0 : 160); // hold the light a beat past the shot
+      state.snapping = false;
+      syncUI(); requestDraw();
+    }
   }
 
   function wait(ms) { // resolves false as soon as the run is cancelled
@@ -304,10 +365,11 @@
   }
 
   async function onShutter() {
+    if (state.snapping) return;
     if (state.running) { state.cancel = true; return; }
-    if (state.active === null) { startOver(); return; }   // "Again"
+    if (state.active === null) { startOver(); return; }   // "again"
     if (state.cam !== 'live') return;
-    if (!state.timer) { snapNow(); if (state.active !== null) scrollToActive(); return; }
+    if (!state.timer) { if ((await snapNow()) && state.active !== null) scrollToActive(); return; }
 
     // With a timer, one press runs every remaining window hands-free, like a real photobooth.
     state.running = true; state.cancel = false; syncUI();
@@ -315,7 +377,7 @@
       for (;;) {
         scrollToActive();
         if (!(await countdown(state.timer))) break;
-        if (!snapNow() || state.active === null) break;
+        if (!(await snapNow()) || state.active === null) break;
         if (!(await wait(700))) break;
       }
     } finally {
@@ -324,8 +386,15 @@
     }
   }
 
+  /** A volume key or earphone button: shoots the next window, and never wipes a finished frame. */
+  function onHardwareButton() {
+    if (state.running) { state.cancel = true; return; }
+    if (state.active === null || state.cam !== 'live') return;
+    onShutter();
+  }
+
   function startOver() {
-    if (state.running) return;
+    if (state.running || state.snapping) return;
     resetShots();
     syncUI(); requestDraw();
     window.scrollTo({ top: 0, behavior: reduced() ? 'auto' : 'smooth' });
@@ -333,7 +402,7 @@
 
   // tap a finished photo to retake just that one
   el.canvas.addEventListener('click', (e) => {
-    if (state.running) return;
+    if (state.running || state.snapping) return;
     const g = geo(), r = el.canvas.getBoundingClientRect();
     const x = (e.clientX - r.left) / r.width * g.W, y = (e.clientY - r.top) / r.height * g.H;
     const i = g.slots.findIndex(s => x >= s.x && x <= s.x + s.w && y >= s.y && y <= s.y + s.h);
@@ -348,16 +417,17 @@
   let exportCache = { sig: '', blob: null };
 
   function signature() {
-    return [layoutId(), state.frame, state.caption, state.filter, state.stamp, state.shots.map(s => (s ? s.id : 0)).join(',')].join('|');
+    return [layoutId(), state.frame, state.caption, state.font, state.filter, state.stamp, state.logo, state.shots.map(s => (s ? s.id : 0)).join(',')].join('|');
   }
 
   async function exportBlob() {
     const sig = signature();
     if (exportCache.blob && exportCache.sig === sig) return exportCache.blob;
+    await R.loadFont(state.font);
     const cv = document.createElement('canvas');
     R.compose(design(null), EXPORT_SCALE[layoutId()], cv);
     const blob = await new Promise((resolve, reject) => {
-      cv.toBlob(b => (b ? resolve(b) : reject(new Error('Could not encode the image'))), 'image/jpeg', 0.92);
+      cv.toBlob(b => (b ? resolve(b) : reject(new Error('could not encode the image'))), 'image/jpeg', 0.92);
     });
     exportCache = { sig, blob };
     return blob;
@@ -385,15 +455,15 @@
       const blob = await exportBlob();
       const name = fileName();
       const file = new File([blob], name, { type: 'image/jpeg' });
-      // On a phone the share sheet offers "Save Image" (straight to Photos); elsewhere, download.
+      // on a phone the share sheet offers "save image" (straight to photos); elsewhere, download
       if (matchMedia('(pointer: coarse)').matches && navigator.canShare && navigator.canShare({ files: [file] })) {
         try { await navigator.share({ files: [file] }); return; }
         catch (e) { if (e && e.name === 'AbortError') return; /* otherwise fall back to a download */ }
       }
       download(blob, name);
-      toast('Saved to your downloads.');
+      toast('saved to your downloads.');
     } catch (e) {
-      toast('Could not save the image. Try again.');
+      toast('could not save the image. try again.');
     } finally {
       el.btnSave.disabled = false;
     }
@@ -404,10 +474,10 @@
   function hintText() {
     const g = geo();
     if (state.cam === 'error') return '';
-    if (state.running) return g.n === 1 ? 'Get ready…' : 'Photo ' + (state.active + 1) + ' of ' + g.n + '. Get ready…';
-    if (state.active === null) return g.n === 1 ? 'Nice. Save it, or tap the photo to retake.' : 'All set. Save it, or tap any photo to retake.';
-    if (g.n === 1) return state.shots[0] ? 'Retaking. Tap the shutter.' : 'Line up your shot, then tap the shutter.';
-    return 'Photo ' + (state.active + 1) + ' of ' + g.n + '. Tap the shutter.';
+    if (state.running) return g.n === 1 ? 'get ready…' : 'photo ' + (state.active + 1) + ' of ' + g.n + '. get ready…';
+    if (state.active === null) return g.n === 1 ? 'nice. save it, or tap the photo to retake.' : 'all set. save it, or tap any photo to retake.';
+    if (g.n === 1) return state.shots[0] ? 'retaking. tap the shutter.' : 'line up your shot, then tap the shutter.';
+    return 'photo ' + (state.active + 1) + ' of ' + g.n + '. tap the shutter.';
   }
 
   function markPressed(container, attr, value) {
@@ -423,24 +493,34 @@
 
     markPressed(el.modes, 'mode', state.mode);
     markPressed(el.layouts, 'layout', state.layout);
+    markPressed(el.fonts, 'id', state.font);
     [...el.modes.children, ...el.layouts.children].forEach(b => { b.disabled = busy; });
+    const cf = R.captionFont(state.font);
+    el.caption.style.fontFamily = cf.css; el.caption.style.fontWeight = cf.weight; el.caption.style.fontSize = Math.round(cf.ui * 1.15) + 'px';
     el.swatches.querySelectorAll('.swatch').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.id === state.frame)));
-    el.swMirror.setAttribute('aria-checked', String(state.mirror));
+    el.swLogo.setAttribute('aria-checked', String(state.logo));
     el.swStamp.setAttribute('aria-checked', String(state.stamp));
+    el.swMirror.setAttribute('aria-checked', String(state.mirror));
+    el.swKeys.setAttribute('aria-checked', String(state.keys));
     el.filters.querySelectorAll('.chip').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.id === state.filter)));
 
-    el.shutterLabel.textContent = busy ? 'Stop' : full ? 'Again' : 'Snap';
-    el.btnShutter.setAttribute('aria-label', busy ? 'Stop' : full ? 'Start over' : 'Take photo');
+    el.shutterLabel.textContent = busy ? 'stop' : full ? 'again' : 'snap';
+    el.btnShutter.setAttribute('aria-label', busy ? 'stop' : full ? 'start over' : 'take photo');
     el.btnShutter.dataset.state = busy ? 'stop' : 'go';
-    el.btnShutter.disabled = !busy && !full && state.cam !== 'live';
+    el.btnShutter.disabled = state.snapping || (!busy && !full && state.cam !== 'live');
 
     el.btnTimer.innerHTML = state.timer ? '<b>' + state.timer + 's</b>' : icon('timer');
     el.btnTimer.classList.toggle('on', state.timer > 0);
-    el.btnTimer.setAttribute('aria-label', state.timer ? 'Timer ' + state.timer + ' seconds. Tap to change' : 'Timer off. Tap to change');
+    el.btnTimer.setAttribute('aria-label', state.timer ? 'timer ' + state.timer + ' seconds. tap to change' : 'timer off. tap to change');
     el.btnTimer.disabled = busy;
 
+    el.btnFlash.innerHTML = icon(state.flash ? 'bolt' : 'boltOff');
+    el.btnFlash.classList.toggle('on', state.flash);
+    el.btnFlash.setAttribute('aria-label', 'flash ' + (state.flash ? 'on' : 'off') + '. tap to change');
+    el.btnFlash.disabled = busy;
+
     el.ctlFlip.classList.toggle('is-off', !(state.cam === 'live' && state.canFlip) || busy);
-    el.ctlReset.classList.toggle('is-off', busy || !any);
+    el.ctlReset.classList.toggle('is-off', busy || full || !any);   // when the frame is full, "again" and save take over
     el.ctlSave.classList.toggle('is-off', !full || busy);
     el.hint.textContent = hintText();
   }
@@ -456,21 +536,38 @@
     R.PALETTE.forEach(p => {
       const b = document.createElement('button');
       b.type = 'button'; b.className = 'swatch'; b.dataset.id = p.id;
-      b.style.setProperty('--c', p.paper); b.setAttribute('aria-label', p.name); b.title = p.name;
+      b.style.setProperty('--c', p.paper); b.setAttribute('aria-label', p.name.toLowerCase()); b.title = p.name.toLowerCase();
       b.addEventListener('click', () => { state.frame = p.id; syncUI(); requestDraw(); });
       el.swatches.append(b);
     });
+  }
+
+  function toggle(key, after) {
+    state[key] = !state[key];
+    savePrefs(); syncUI(); requestDraw();
+    if (after) after();
   }
 
   function wire() {
     el.modes.addEventListener('click', (e) => { const b = e.target.closest('button[data-mode]'); if (b) changeFrame(b.dataset.mode, state.layout); });
     el.layouts.addEventListener('click', (e) => { const b = e.target.closest('button[data-layout]'); if (b) changeFrame('booth', b.dataset.layout); });
     el.caption.addEventListener('input', () => { state.caption = el.caption.value; requestDraw(); });
-    el.swMirror.addEventListener('click', () => { state.mirror = !state.mirror; syncUI(); requestDraw(); });
-    el.swStamp.addEventListener('click', () => { state.stamp = !state.stamp; savePrefs(); syncUI(); requestDraw(); });
+    el.swLogo.addEventListener('click', () => toggle('logo'));
+    el.swStamp.addEventListener('click', () => toggle('stamp'));
+    el.swMirror.addEventListener('click', () => toggle('mirror'));
+
+    el.swKeys.addEventListener('click', () => toggle('keys', () => {
+      if (state.keys) { PP.buttons.enable(onHardwareButton); toast('volume and earphone buttons on.'); }
+      else PP.buttons.disable();
+    }));
+
     el.btnTimer.addEventListener('click', () => {
       state.timer = TIMERS[(TIMERS.indexOf(state.timer) + 1) % TIMERS.length];
       savePrefs(); syncUI();
+    });
+    el.btnFlash.addEventListener('click', () => {
+      if (!state.flash && state.cam === 'live' && !flashSupported()) { toast("flash isn't available on this camera."); return; }
+      toggle('flash', () => { if (state.flash) toast(isRear() ? 'flash on.' : 'flash on. the screen lights up as you shoot.'); });
     });
     el.btnShutter.addEventListener('click', onShutter);
     el.btnFlip.addEventListener('click', flipCamera);
@@ -497,12 +594,20 @@
     el.btnReset.innerHTML = icon('redo');
     el.btnSave.innerHTML = icon('save');
     buildSwatches();
+    buildFonts();
     buildChips();
     paintChips(null, false);
     resetShots();
     syncUI();
     wire();
     R.loadFonts().then(requestDraw);
+    if (state.font !== 'pen') R.loadFont(state.font).then(requestDraw);
+
+    if (state.keys) { // remembered from last time; the silent track needs a tap before it can play
+      PP.buttons.enable(onHardwareButton);
+      document.addEventListener('pointerdown', () => PP.buttons.enable(onHardwareButton), { once: true });
+    }
+
     raf = requestAnimationFrame(loop);
     startCamera();
   }

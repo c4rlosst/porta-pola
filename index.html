@@ -3,9 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>Porta-Pola</title>
-  <meta name="description" content="Take photos in your browser and drop them straight into a polaroid or photobooth frame.">
+  <title>porta-pola</title>
+  <meta name="description" content="take photos in your browser and drop them straight into a polaroid or photobooth frame.">
   <meta name="theme-color" content="#f6f6f5">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="alternate icon" href="assets/favicon-32.png" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-title" content="porta-pola">
   <link rel="stylesheet" href="css/fonts.css">
   <link rel="stylesheet" href="css/style.css">
 </head>
@@ -13,16 +17,16 @@
 <div id="app" class="app" data-mode="polaroid" data-layout="polaroid">
 
   <header class="top">
-    <h1 class="brand">porta<i>·</i>pola</h1>
+    <h1 class="brand"><img src="assets/logo.svg" alt="porta·pola" width="197" height="30"></h1>
   </header>
 
   <main>
-    <div class="modes" id="modes" role="group" aria-label="Frame type">
-      <button type="button" data-mode="polaroid" aria-pressed="true">Polaroid</button>
-      <button type="button" data-mode="booth" aria-pressed="false">Photobooth</button>
+    <div class="modes" id="modes" role="group" aria-label="frame type">
+      <button type="button" data-mode="polaroid" aria-pressed="true">polaroid</button>
+      <button type="button" data-mode="booth" aria-pressed="false">photobooth</button>
     </div>
 
-    <div class="layouts" id="layouts" role="group" aria-label="Photobooth layout">
+    <div class="layouts" id="layouts" role="group" aria-label="photobooth layout">
       <button type="button" data-layout="strip4" aria-pressed="true">
         <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><rect x="8" y="1.5" width="8" height="4" rx="1"/><rect x="8" y="7" width="8" height="4" rx="1"/><rect x="8" y="12.5" width="8" height="4" rx="1"/><rect x="8" y="18" width="8" height="4" rx="1"/></g></svg>
         4 strip
@@ -38,72 +42,93 @@
     </div>
 
     <div class="stage" id="stage">
-      <canvas id="frameCv" role="img" aria-label="Your photo frame"></canvas>
+      <canvas id="frameCv" role="img" aria-label="your photo frame"></canvas>
       <div class="status" id="status" hidden></div>
       <div class="count" id="count" aria-hidden="true"></div>
     </div>
 
     <div class="panel">
       <div class="prow">
-        <label class="plabel" for="caption">Caption</label>
-        <input id="caption" type="text" maxlength="32" placeholder="Write something…" autocomplete="off" spellcheck="false">
+        <label class="plabel" for="caption">caption</label>
+        <input id="caption" type="text" maxlength="32" placeholder="write something…" autocomplete="off" spellcheck="false">
+        <div class="fonts" id="fonts" role="group" aria-label="caption font"></div>
       </div>
       <div class="prow">
-        <span class="plabel" id="lblFrame">Frame color</span>
+        <span class="plabel" id="lblFrame">frame color</span>
         <div class="swatches" id="swatches" role="group" aria-labelledby="lblFrame"></div>
       </div>
       <div class="prow prow-inline">
-        <span class="plabel" id="lblStamp">Date stamp</span>
+        <span class="plabel" id="lblLogo">logo on print</span>
+        <button type="button" class="switch" id="swLogo" role="switch" aria-checked="true" aria-labelledby="lblLogo"></button>
+      </div>
+      <div class="prow prow-inline">
+        <span class="plabel" id="lblStamp">date stamp</span>
         <button type="button" class="switch" id="swStamp" role="switch" aria-checked="false" aria-labelledby="lblStamp"></button>
       </div>
       <div class="prow prow-inline">
-        <span class="plabel" id="lblMirror">Mirror camera</span>
+        <span class="plabel" id="lblMirror">mirror camera</span>
         <button type="button" class="switch" id="swMirror" role="switch" aria-checked="true" aria-labelledby="lblMirror"></button>
+      </div>
+      <div class="prow">
+        <div class="row-line">
+          <span class="plabel" id="lblKeys">volume button</span>
+          <button type="button" class="switch" id="swKeys" role="switch" aria-checked="false" aria-labelledby="lblKeys" aria-describedby="keysNote"></button>
+        </div>
+        <p class="note" id="keysNote">take a photo with a volume key or an earphone button, on browsers that allow it. iphones don't allow volume keys. this plays a silent track, which can pause your music.</p>
       </div>
     </div>
   </main>
 
   <div class="bar">
     <p class="hint" id="hint" aria-live="polite"></p>
-    <div class="filters" id="filters" role="group" aria-label="Filter"></div>
+    <div class="filters" id="filters" role="group" aria-label="filter"></div>
     <div class="controls">
       <div class="grp">
         <div class="ctl">
           <button type="button" class="round" id="btnTimer"></button>
-          <span>Timer</span>
+          <span>timer</span>
         </div>
-        <div class="ctl" id="ctlFlip">
-          <button type="button" class="round" id="btnFlip" aria-label="Switch camera"></button>
-          <span>Flip</span>
+        <div class="ctl" id="ctlFlash">
+          <button type="button" class="round" id="btnFlash"></button>
+          <span>flash</span>
         </div>
       </div>
       <div class="ctl">
-        <button type="button" class="shutter" id="btnShutter" aria-label="Take photo"><i></i></button>
-        <span id="shutterLabel">Snap</span>
+        <button type="button" class="shutter" id="btnShutter" aria-label="take photo"><i></i></button>
+        <span id="shutterLabel">snap</span>
       </div>
       <div class="grp">
-        <div class="ctl" id="ctlReset">
-          <button type="button" class="round" id="btnReset" aria-label="Start over"></button>
-          <span>Start over</span>
+        <div class="ctl" id="ctlFlip">
+          <button type="button" class="round" id="btnFlip" aria-label="switch camera"></button>
+          <span>flip</span>
         </div>
-        <div class="ctl" id="ctlSave">
-          <button type="button" class="round solid" id="btnSave" aria-label="Save image"></button>
-          <span>Save</span>
+        <div class="swap">
+          <div class="ctl" id="ctlReset">
+            <button type="button" class="round" id="btnReset" aria-label="start over"></button>
+            <span>start over</span>
+          </div>
+          <div class="ctl" id="ctlSave">
+            <button type="button" class="round solid" id="btnSave" aria-label="save image"></button>
+            <span>save</span>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
+  <div id="glow" class="glow" aria-hidden="true"></div>
   <div id="flash" class="flash" aria-hidden="true"></div>
   <div id="toast" class="toast" role="status"></div>
   <div id="live" class="sr" aria-live="assertive"></div>
 </div>
 
-<noscript><p style="color:#111;padding:24px;font:16px system-ui">Porta-Pola needs JavaScript to run the camera and build your frames.</p></noscript>
+<noscript><p style="color:#111;padding:24px;font:16px system-ui">porta-pola needs javascript to run the camera and build your frames.</p></noscript>
 
 <script src="js/filters.js"></script>
+<script src="js/logo.js"></script>
 <script src="js/render.js"></script>
 <script src="js/camera.js"></script>
+<script src="js/buttons.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

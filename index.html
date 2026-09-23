@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Porta-Pola</title>
+  <meta name="description" content="Take photos in your browser and drop them straight into a polaroid or photobooth frame.">
+  <meta name="theme-color" content="#f6f6f5">
+  <link rel="stylesheet" href="css/fonts.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app" class="app" data-mode="polaroid" data-layout="polaroid">
+
+  <header class="top">
+    <h1 class="brand">porta<i>·</i>pola</h1>
+  </header>
+
+  <main>
+    <div class="modes" id="modes" role="group" aria-label="Frame type">
+      <button type="button" data-mode="polaroid" aria-pressed="true">Polaroid</button>
+      <button type="button" data-mode="booth" aria-pressed="false">Photobooth</button>
+    </div>
+
+    <div class="layouts" id="layouts" role="group" aria-label="Photobooth layout">
+      <button type="button" data-layout="strip4" aria-pressed="true">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><rect x="8" y="1.5" width="8" height="4" rx="1"/><rect x="8" y="7" width="8" height="4" rx="1"/><rect x="8" y="12.5" width="8" height="4" rx="1"/><rect x="8" y="18" width="8" height="4" rx="1"/></g></svg>
+        4 strip
+      </button>
+      <button type="button" data-layout="strip3" aria-pressed="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><rect x="7.5" y="2" width="9" height="6" rx="1"/><rect x="7.5" y="9" width="9" height="6" rx="1"/><rect x="7.5" y="16" width="9" height="6" rx="1"/></g></svg>
+        3 strip
+      </button>
+      <button type="button" data-layout="grid4" aria-pressed="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><rect x="3.5" y="3.5" width="7.5" height="7.5" rx="1"/><rect x="13" y="3.5" width="7.5" height="7.5" rx="1"/><rect x="3.5" y="13" width="7.5" height="7.5" rx="1"/><rect x="13" y="13" width="7.5" height="7.5" rx="1"/></g></svg>
+        2×2 grid
+      </button>
+    </div>
+
+    <div class="stage" id="stage">
+      <canvas id="frameCv" role="img" aria-label="Your photo frame"></canvas>
+      <div class="status" id="status" hidden></div>
+    </div>
+
+    <div class="panel">
+      <div class="prow">
+        <label class="plabel" for="caption">Caption</label>
+        <input id="caption" type="text" maxlength="32" placeholder="Write something…" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="prow">
+        <span class="plabel" id="lblFrame">Frame color</span>
+        <div class="swatches" id="swatches" role="group" aria-labelledby="lblFrame"></div>
+      </div>
+      <div class="prow prow-inline">
+        <span class="plabel" id="lblMirror">Mirror camera</span>
+        <button type="button" class="switch" id="swMirror" role="switch" aria-checked="true" aria-labelledby="lblMirror"></button>
+      </div>
+    </div>
+  </main>
+
+  <div class="bar">
+    <p class="hint" id="hint" aria-live="polite"></p>
+    <div class="controls">
+      <div class="ctl" id="ctlFlip">
+        <button type="button" class="round" id="btnFlip" aria-label="Switch camera"></button>
+        <span>Flip</span>
+      </div>
+      <div class="ctl">
+        <button type="button" class="shutter" id="btnShutter" aria-label="Take photo"><i></i></button>
+        <span id="shutterLabel">Snap</span>
+      </div>
+      <div class="ctl" id="ctlReset">
+        <button type="button" class="round" id="btnReset" aria-label="Start over"></button>
+        <span>Start over</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="flash" class="flash" aria-hidden="true"></div>
+</div>
+
+<noscript><p style="color:#111;padding:24px;font:16px system-ui">Porta-Pola needs JavaScript to run the camera and build your frames.</p></noscript>
+
+<script src="js/render.js"></script>
+<script src="js/camera.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

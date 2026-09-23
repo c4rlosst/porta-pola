@@ -49,7 +49,11 @@ const TYPES = {
 
 const { key, cert } = await ensureCert();
 
-https.createServer({ key: await readFile(key), cert: await readFile(cert) }, async (req, res) => {
+const who = (socket) => String(socket.remoteAddress || '?').replace('::ffff:', '');
+const clock = () => new Date().toLocaleTimeString();
+
+const server = https.createServer({ key: await readFile(key), cert: await readFile(cert) }, async (req, res) => {
+  console.log(clock(), who(req.socket), req.method, req.url);
   try {
     const url = new URL(req.url, 'https://localhost');
     let rel = decodeURIComponent(url.pathname);
@@ -64,7 +68,12 @@ https.createServer({ key: await readFile(key), cert: await readFile(cert) }, asy
   } catch (e) {
     res.writeHead(404, { 'Content-Type': 'text/plain' }).end('Not found');
   }
-}).listen(port, '0.0.0.0', () => {
+});
+
+// a phone that refuses the certificate shows up here instead of as a request
+server.on('tlsClientError', (err, socket) => console.log(clock(), who(socket), 'TLS handshake failed:', err.message));
+
+server.listen(port, '0.0.0.0', () => {
   console.log('\nPorta-Pola is running. On your phone (same Wi-Fi), open:\n');
   lan.forEach(ip => console.log('  https://' + ip + ':' + port));
   console.log('\nOn this computer:  https://localhost:' + port);

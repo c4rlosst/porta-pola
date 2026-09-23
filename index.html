@@ -40,6 +40,7 @@
     <div class="stage" id="stage">
       <canvas id="frameCv" role="img" aria-label="Your photo frame"></canvas>
       <div class="status" id="status" hidden></div>
+      <div class="count" id="count" aria-hidden="true"></div>
     </div>
 
     <div class="panel">
@@ -52,6 +53,10 @@
         <div class="swatches" id="swatches" role="group" aria-labelledby="lblFrame"></div>
       </div>
       <div class="prow prow-inline">
+        <span class="plabel" id="lblStamp">Date stamp</span>
+        <button type="button" class="switch" id="swStamp" role="switch" aria-checked="false" aria-labelledby="lblStamp"></button>
+      </div>
+      <div class="prow prow-inline">
         <span class="plabel" id="lblMirror">Mirror camera</span>
         <button type="button" class="switch" id="swMirror" role="switch" aria-checked="true" aria-labelledby="lblMirror"></button>
       </div>
@@ -60,27 +65,43 @@
 
   <div class="bar">
     <p class="hint" id="hint" aria-live="polite"></p>
+    <div class="filters" id="filters" role="group" aria-label="Filter"></div>
     <div class="controls">
-      <div class="ctl" id="ctlFlip">
-        <button type="button" class="round" id="btnFlip" aria-label="Switch camera"></button>
-        <span>Flip</span>
+      <div class="grp">
+        <div class="ctl">
+          <button type="button" class="round" id="btnTimer"></button>
+          <span>Timer</span>
+        </div>
+        <div class="ctl" id="ctlFlip">
+          <button type="button" class="round" id="btnFlip" aria-label="Switch camera"></button>
+          <span>Flip</span>
+        </div>
       </div>
       <div class="ctl">
         <button type="button" class="shutter" id="btnShutter" aria-label="Take photo"><i></i></button>
         <span id="shutterLabel">Snap</span>
       </div>
-      <div class="ctl" id="ctlReset">
-        <button type="button" class="round" id="btnReset" aria-label="Start over"></button>
-        <span>Start over</span>
+      <div class="grp">
+        <div class="ctl" id="ctlReset">
+          <button type="button" class="round" id="btnReset" aria-label="Start over"></button>
+          <span>Start over</span>
+        </div>
+        <div class="ctl" id="ctlSave">
+          <button type="button" class="round solid" id="btnSave" aria-label="Save image"></button>
+          <span>Save</span>
+        </div>
       </div>
     </div>
   </div>
 
   <div id="flash" class="flash" aria-hidden="true"></div>
+  <div id="toast" class="toast" role="status"></div>
+  <div id="live" class="sr" aria-live="assertive"></div>
 </div>
 
 <noscript><p style="color:#111;padding:24px;font:16px system-ui">Porta-Pola needs JavaScript to run the camera and build your frames.</p></noscript>
 
+<script src="js/filters.js"></script>
 <script src="js/render.js"></script>
 <script src="js/camera.js"></script>
 <script src="js/app.js"></script>

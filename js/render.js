@@ -65,15 +65,74 @@
   }
 
   /** Fill a slot with `src`, cropped to fit (like object-fit: cover). */
-  function drawCover(ctx, src, slot, mirror) {
+  function drawCover(ctx, src, slot) {
     const s = sizeOf(src);
     const aspect = slot.w / slot.h;
     let cw, ch;
     if (s.w / s.h > aspect) { ch = s.h; cw = s.h * aspect; } else { cw = s.w; ch = s.w / aspect; }
-    ctx.save();
-    ctx.beginPath(); ctx.rect(slot.x, slot.y, slot.w, slot.h); ctx.clip();
-    if (mirror) { ctx.translate(slot.x * 2 + slot.w, 0); ctx.scale(-1, 1); }
     ctx.drawImage(src, (s.w - cw) / 2, (s.h - ch) / 2, cw, ch, slot.x, slot.y, slot.w, slot.h);
+  }
+
+  /** A filtered copy of a shot at the size it will be drawn; a couple are kept per shot. */
+  function processed(shot, filterId, w, h) {
+    const key = filterId + '|' + w + 'x' + h;
+    const cache = shot._pp || (shot._pp = new Map());
+    if (cache.has(key)) return cache.get(key);
+    const c = document.createElement('canvas');
+    c.width = Math.max(1, w); c.height = Math.max(1, h);
+    const ctx = c.getContext('2d', { willReadFrequently: true });
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(shot, 0, 0, c.width, c.height);
+    PP.filters.apply(c, filterId);
+    if (cache.size >= 2) cache.delete(cache.keys().next().value);
+    cache.set(key, c);
+    return c;
+  }
+
+  // Seven-segment digits for the orange film date stamp (a b c d e f g)
+  const SEGMENTS = { 0: 'abcdef', 1: 'bc', 2: 'abdeg', 3: 'abcdg', 4: 'bcfg', 5: 'acdfg', 6: 'acdefg', 7: 'abc', 8: 'abcdefg', 9: 'abcdfg' };
+
+  function drawDigit(ctx, ch, x, y, h) {
+    const w = h * 0.56, t = h * 0.13;
+    const on = SEGMENTS[ch];
+    const bar = (name, bx, by, bw, bh) => { if (on.indexOf(name) >= 0) ctx.fillRect(bx, by, bw, bh); };
+    bar('a', x + t * 0.5, y, w - t, t);
+    bar('g', x + t * 0.5, y + h / 2 - t / 2, w - t, t);
+    bar('d', x + t * 0.5, y + h - t, w - t, t);
+    bar('f', x, y + t * 0.5, t, h / 2 - t);
+    bar('b', x + w - t, y + t * 0.5, t, h / 2 - t);
+    bar('e', x, y + h / 2 + t * 0.1, t, h / 2 - t);
+    bar('c', x + w - t, y + h / 2 + t * 0.1, t, h / 2 - t);
+    return w;
+  }
+
+  /** '26  9  23 in glowing orange, right-aligned to the bottom-right of a photo. */
+  function drawStamp(ctx, slot, date) {
+    const h = slot.w * 0.062, w = h * 0.56, gap = h * 0.2, space = h * 0.62, tick = h * 0.3;
+    const groups = [String(date.getFullYear()).slice(-2), String(date.getMonth() + 1), String(date.getDate())];
+
+    let total = tick; // measure first so the stamp can sit flush to the right edge
+    groups.forEach((g, gi) => {
+      total += g.length * w + (g.length - 1) * gap;
+      if (gi < groups.length - 1) total += space;
+    });
+    let x = slot.x + slot.w - slot.w * 0.06 - total;
+    const y = slot.y + slot.h - slot.h * 0.06 - h;
+
+    ctx.save();
+    ctx.fillStyle = '#ff8f24';
+    ctx.shadowColor = 'rgba(255, 110, 20, 0.9)';
+    ctx.shadowBlur = h * 0.5;
+    ctx.transform(1, 0, -0.14, 1, (y + h) * 0.14, 0); // italic lean, pivoting on the baseline
+    ctx.fillRect(x + tick * 0.25, y, h * 0.1, h * 0.3); // apostrophe before the year
+    x += tick;
+    groups.forEach((g, gi) => {
+      [...g].forEach((ch, i) => {
+        x += drawDigit(ctx, ch, x, y, h);
+        if (i < g.length - 1) x += gap;
+      });
+      if (gi < groups.length - 1) x += space;
+    });
     ctx.restore();
   }
 
@@ -115,8 +174,8 @@
   }
 
   /**
-   * design = { layout, shots[] (null = empty), frame, caption, live? }
-   * live   = { slot, video, mirror } draws the camera into that window.
+   * design = { layout, shots[] (null = empty), frame, caption, filter, stamp, date, live? }
+   * live   = { slot, source } draws an already-filtered camera canvas into that window.
    * Paints onto `target` (resized to geometry * scale).
    */
   function compose(design, scale, target) {
@@ -132,14 +191,17 @@
     drawPaper(ctx, g, pal);
 
     const live = design.live;
+    const k = w / g.W;
     g.slots.forEach((slot, i) => {
       const shot = design.shots[i];
-      if (live && live.slot === i && live.video.videoWidth) {
-        drawCover(ctx, live.video, slot, live.mirror);
+      let filled = true;
+      if (live && live.slot === i) drawCover(ctx, live.source, slot);
+      else if (shot) ctx.drawImage(processed(shot, design.filter, Math.round(slot.w * k), Math.round(slot.h * k)), slot.x, slot.y, slot.w, slot.h);
+      else filled = false;
+
+      if (filled) {
         drawFinish(ctx, slot);
-      } else if (shot) {
-        drawCover(ctx, shot, slot, false);
-        drawFinish(ctx, slot);
+        if (design.stamp) drawStamp(ctx, slot, design.date || new Date());
       } else drawPlaceholder(ctx, g, slot, i, pal);
     });
 

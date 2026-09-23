@@ -50,7 +50,7 @@ svg.i { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-widt
 
 /* ───────────────────────── Layout ───────────────────────── */
 
-main { width: 100%; max-width: 560px; margin: 0 auto; padding: 28px 16px 190px; }
+main { width: 100%; max-width: 560px; margin: 0 auto; padding: 28px 16px 270px; }
 
 /* ───────────────────────── Frame choice ───────────────────────── */
 
@@ -74,7 +74,7 @@ main { width: 100%; max-width: 560px; margin: 0 auto; padding: 28px 16px 190px; 
 .stage {
   --ar: 0.822;
   --min-w: 240px;
-  --chrome: 350px;   /* everything above and below the frame that must stay on screen */
+  --chrome: 420px;   /* everything above and below the frame that must stay on screen */
   position: relative; margin: 24px auto 0;
   width: min(100%, 520px, max(var(--min-w), calc((100vh - var(--chrome)) * var(--ar))));
   width: min(100%, 520px, max(var(--min-w), calc((100dvh - var(--chrome)) * var(--ar))));
@@ -82,7 +82,7 @@ main { width: 100%; max-width: 560px; margin: 0 auto; padding: 28px 16px 190px; 
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.05), 0 24px 40px -28px rgba(0, 0, 0, 0.35);
   transition: width 0.3s;
 }
-.app[data-mode="booth"] .stage { --chrome: 400px; }
+.app[data-mode="booth"] .stage { --chrome: 470px; }
 .app[data-layout^="strip"] .stage { --min-w: 290px; }
 .stage canvas { display: block; width: 100%; height: 100%; cursor: pointer; }
 
@@ -93,6 +93,11 @@ main { width: 100%; max-width: 560px; margin: 0 auto; padding: 28px 16px 190px; 
 .status h3 { font-weight: 500; font-size: 13px; letter-spacing: 0.2em; text-transform: uppercase; line-height: 1.4; }
 .status p { font-size: 15px; color: var(--muted); max-width: 30ch; }
 .status .row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 8px; }
+
+.count {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none;
+  font-weight: 300; line-height: 1; color: #fff; text-shadow: 0 2px 24px rgba(0, 0, 0, 0.55);
+}
 
 /* ───────────────────────── Options ───────────────────────── */
 
@@ -147,7 +152,23 @@ main { width: 100%; max-width: 560px; margin: 0 auto; padding: 28px 16px 190px; 
   max-width: 420px; min-height: 1.4em; margin: 0 auto 12px; text-align: center;
   font-size: 14px; letter-spacing: 0.02em; color: var(--muted);
 }
-.controls { max-width: 420px; margin: 0 auto; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; justify-items: center; }
+.filters {
+  display: flex; gap: 14px; overflow-x: auto; margin: 0 -16px 10px; padding: 2px 16px 4px;
+  justify-content: flex-start; justify-content: safe center; scroll-snap-type: x proximity; scrollbar-width: none;
+}
+.filters::-webkit-scrollbar { display: none; }
+.chip { flex: 0 0 auto; width: 52px; padding: 0; border: 0; background: none; text-align: center; scroll-snap-align: center; }
+.chip canvas {
+  display: block; width: 42px; height: 42px; margin: 0 auto; border-radius: 50%; background: #e6e6e3;
+  transition: box-shadow 0.15s;
+}
+.chip span { display: block; margin-top: 6px; font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+.chip:hover span { color: var(--ink); }
+.chip[aria-pressed="true"] canvas { box-shadow: 0 0 0 2px var(--bg), 0 0 0 3.5px var(--ink); }
+.chip[aria-pressed="true"] span { color: var(--ink); }
+
+.controls { max-width: 460px; margin: 0 auto; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; justify-items: center; }
+.grp { display: flex; justify-content: space-evenly; width: 100%; }
 .ctl { display: grid; justify-items: center; gap: 6px; }
 .ctl > span { font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); }
 .ctl.is-off { visibility: hidden; }
@@ -157,6 +178,10 @@ main { width: 100%; max-width: 560px; margin: 0 auto; padding: 28px 16px 190px; 
   background: none; color: var(--ink); transition: background-color 0.15s;
 }
 .round:hover { background: rgba(0, 0, 0, 0.05); }
+.round:disabled { opacity: 0.3; }
+.round b { font-size: 15px; font-weight: 500; letter-spacing: 0.02em; }
+.round.on { box-shadow: inset 0 0 0 1.5px var(--ink); }
+.round.solid, .round.solid:hover { background: var(--ink); color: #fff; }
 
 .shutter {
   width: 72px; height: 72px; padding: 0; border-radius: 50%; border: 1.5px solid var(--ink); background: none;
@@ -165,6 +190,17 @@ main { width: 100%; max-width: 560px; margin: 0 auto; padding: 28px 16px 190px; 
 .shutter i { width: 58px; height: 58px; border-radius: 50%; background: var(--ink); transition: transform 0.12s; }
 .shutter:active:not(:disabled) i { transform: scale(0.9); }
 .shutter:disabled { opacity: 0.25; }
+.shutter[data-state="stop"] i { border-radius: 14px; transform: scale(0.5); }
+
+.toast {
+  position: fixed; z-index: 90; left: 50%; top: calc(16px + var(--safe-t)); max-width: calc(100vw - 32px);
+  padding: 11px 20px; border-radius: 999px; background: var(--ink); color: #fff;
+  font-size: 14px; letter-spacing: 0.02em; text-align: center;
+  opacity: 0; transform: translate(-50%, -12px); pointer-events: none; transition: opacity 0.2s, transform 0.25s;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+.sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
 .flash { position: fixed; inset: 0; z-index: 80; background: #fff; opacity: 0; pointer-events: none; }
 

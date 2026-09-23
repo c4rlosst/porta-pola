@@ -6,6 +6,9 @@ The frame is the viewfinder: your live camera shows inside the next empty photo 
 
 - **Polaroid** — one square photo, with a caption in the margin.
 - **Photobooth** — a 4-photo strip, a 3-photo strip, or a 2×2 grid.
+- **Filters** — ten retro looks (Instant, CCD, Flash, Gold, Verde, Dream, Mono, Sepia, Cool) with film grain, vignette and light leaks, live in the viewfinder. An optional orange date stamp goes on every photo.
+- **Timer** — off, 3, 5 or 10 seconds. In photobooth mode one press shoots the whole strip hands-free.
+- **Save** — exports the finished frame as a JPEG. On a phone it opens the share sheet (choose "Save Image" for Photos); on a computer it downloads.
 - Tap a finished photo to retake just that one. Pick a frame color, add a caption, flip cameras, mirror on or off.
 
 No build step and no dependencies: plain HTML, CSS and JavaScript. Fonts are self-hosted in `fonts/`.
@@ -38,11 +41,12 @@ No webcam handy? Open <http://localhost:5173/?fakecam> for a built-in demo camer
 index.html        page
 css/style.css     look and layout
 js/camera.js      getUserMedia, camera switching, ?fakecam demo camera
-js/render.js      frame geometry and the canvas compositor
+js/filters.js     the retro filter engine (per-pixel, runs live and on save)
+js/render.js      frame geometry, the canvas compositor, date stamp
 js/app.js         state, controls, shutter flow
 scripts/fetch-fonts.mjs   re-downloads the fonts (dev only)
 ```
 
 ## Not built yet
 
-Saving or printing the finished frame, an album, filters, and a self-timer. The compositor in `js/render.js` already draws the whole frame to a canvas, so export is the natural next step.
+Printing, an in-app album of past frames, and props (hats, glasses, stickers).

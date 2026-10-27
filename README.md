@@ -1,5 +1,7 @@
 # Porta-Pola
 
+![Sample prints: a photo strip, two polaroids and a 2×2 grid](docs/hero.jpg)
+
 Take photos in your browser and drop them straight into a polaroid or photobooth frame.
 
 The frame is the viewfinder: your live camera shows inside the next empty photo window, and the shutter fills it and moves on.
@@ -16,6 +18,14 @@ The frame is the viewfinder: your live camera shows inside the next empty photo 
 - Tap a finished photo to retake just that one. Pick a frame color, add a caption, flip cameras, mirror on or off.
 
 No build step and no dependencies: plain HTML, CSS and JavaScript. Fonts are self-hosted in `fonts/`.
+
+## Sample prints
+
+All made in the app with the demo camera (`?fakecam`): different frames, filters, caption fonts and the date stamp.
+
+| polaroid · instant · pen | polaroid · flash · sf rounded | strip · ccd · marker | grid · gold · type |
+| :---: | :---: | :---: | :---: |
+| <img src="docs/polaroid-instant.jpg" width="200" alt="Polaroid with the instant filter and a pen caption"> | <img src="docs/polaroid-flash.jpg" width="200" alt="Blue polaroid with the flash filter"> | <img src="docs/strip-ccd.jpg" width="100" alt="Four-photo strip with the ccd filter"> | <img src="docs/grid-gold.jpg" width="200" alt="2x2 grid with the gold filter"> |
 
 ## Run it
 
